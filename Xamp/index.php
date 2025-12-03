@@ -302,7 +302,7 @@ function closeModal(){ document.getElementById('createModal').classList.add('hid
 
     <div class="glass p-8 rounded-2xl shadow-xl">
         <div class="flex items-center justify-between mb-6">
-            <h3 class="text-lg font-semibold flex items-center gap-3"><i data-lucide="folder"></i> Your Projects</h3>
+            <h3 class="text-lg font-semibold flex items-center gap-3"><i data-lucide="folder"></i> All Projects</h3>
             <div class="text-sm opacity-80"><?= count($projects) ?> projects</div>
         </div>
 
