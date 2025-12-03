@@ -1,4 +1,6 @@
 <?php
+// index.php - Full XAMPP dashboard for Tanjimul Islam Tareq
+// Templates included: 1 (Empty PHP), 2 (Tailwind Starter), 3 (Mini MVC)
 
 declare(strict_types=1);
 error_reporting(E_ALL);
@@ -14,39 +16,87 @@ function sanitize_project_name(string $name): string {
     return mb_substr($name, 0, 60);
 }
 
+// ----- Handle Create Project -----
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_project'])) {
     $rawName = (string)($_POST['project_name'] ?? '');
+    $template = (string)($_POST['template'] ?? 'empty');
     $name = sanitize_project_name($rawName);
-    
-    
+
     if ($name === '') {
         $error = 'Project name is required (letters, numbers, - and _ allowed).';
     } else {
         $targetDesired = __DIR__ . DIRECTORY_SEPARATOR . $name;
-
         if (file_exists($targetDesired)) {
             $error = "Folder <strong>" . htmlspecialchars($name) . "</strong> already exists.";
         } else {
             if (!@mkdir($targetDesired, 0755, true)) {
                 $error = "Failed to create folder. Check filesystem permissions for " . htmlspecialchars(__DIR__);
             } else {
-                // Always create minimal index.php
-                file_put_contents($targetDesired . DIRECTORY_SEPARATOR . 'index.php', "<!doctype html>\n<html><head><title>$name</title></head><body><h1>Welcome to $name project</h1></body></html>");
+                try {
+                    if ($template === 'empty' || $template === '1') {
+                        $index = "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n<title>" . htmlspecialchars($name) . "</title>\n</head>\n<body>\n<h1>Welcome to " . htmlspecialchars($name) . "</h1>\n<p>Empty PHP starter.</p>\n</body>\n</html>";
+                        file_put_contents($targetDesired . DIRECTORY_SEPARATOR . 'index.php', $index);
+                    } elseif ($template === 'tailwind' || $template === '2') {
+                        @mkdir($targetDesired . DIRECTORY_SEPARATOR . 'assets', 0755, true);
+                        $index = "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n<title>" . htmlspecialchars($name) . "</title>\n<script src=\"https://cdn.tailwindcss.com\"></script>\n</head>\n<body class=\"min-h-screen flex items-center justify-center bg-slate-50\">\n<div class=\"p-8 bg-white rounded shadow\">\n<h1 class=\"text-2xl font-bold\">" . htmlspecialchars($name) . " — Tailwind Starter</h1>\n<p class=\"mt-3 text-sm text-slate-600\">Start building your app.</p>\n</div>\n</body>\n</html>";
+                        file_put_contents($targetDesired . DIRECTORY_SEPARATOR . 'index.php', $index);
+                        file_put_contents($targetDesired . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'style.css', "/* assets/style.css */\n");
+                    } elseif ($template === 'mvc' || $template === '3') {
+                        @mkdir($targetDesired . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'controllers', 0755, true);
+                        @mkdir($targetDesired . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'models', 0755, true);
+                        @mkdir($targetDesired . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'views', 0755, true);
+                        $index = "<?php\n// Simple router for " . addslashes($name) . "\nrequire __DIR__.'/app/controllers/HomeController.php';\n\$c = new HomeController();\$c->index();\n";
+                        $controller = "<?php\nclass HomeController {\n    public function index(){\n        include __DIR__.'/../app/views/home.php';\n    }\n}\n";
+                        $view = "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n<title>" . htmlspecialchars($name) . " - MVC</title>\n</head>\n<body>\n<h1>" . htmlspecialchars($name) . " — MVC Mini</h1>\n<p>Simple MVC starter page.</p>\n</body>\n</html>";
+                        file_put_contents($targetDesired . DIRECTORY_SEPARATOR . 'index.php', $index);
+                        file_put_contents($targetDesired . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'controllers' . DIRECTORY_SEPARATOR . 'HomeController.php', $controller);
+                        file_put_contents($targetDesired . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'views' . DIRECTORY_SEPARATOR . 'home.php', $view);
+                    } else {
+                        $index = "<!doctype html>\n<html><body><h1>" . htmlspecialchars($name) . "</h1></body></html>";
+                        file_put_contents($targetDesired . DIRECTORY_SEPARATOR . 'index.php', $index);
+                    }
 
-                $message = "Project <strong>" . htmlspecialchars($name) . "</strong> created.";
-
-                // Path to open in browser (for JavaScript)
-                $openProjectUrl = '/' . rawurlencode($name) . '/';
-
-                // **FIXED VS CODE EXECUTION:** Attempt to open in VS Code using cmd /C for better Windows/XAMPP reliability.
-                // NOTE: Requires 'code' to be in PATH and PHP's exec function to be enabled.
-                $vsCodeCmd = 'cmd /C "code ' . escapeshellarg($targetDesired) . ' > NUL 2>&1"';
-                @exec($vsCodeCmd);
+                    $message = "Project <strong>" . htmlspecialchars($name) . "</strong> created (template: <strong>" . htmlspecialchars($template) . "</strong>).";
+                    $openProjectUrl = '/' . rawurlencode($name) . '/';
+                } catch (Throwable $e) {
+                    $error = "Folder created but failed to write files: " . htmlspecialchars($e->getMessage());
+                }
             }
         }
     }
 }
 
+// ----- Handle "Open in VS Code" -----
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['open_vscode'])) {
+    $proj = sanitize_project_name((string)($_POST['open_vscode']));
+    $projPath = realpath(__DIR__ . DIRECTORY_SEPARATOR . $proj);
+
+    // Verify path exists and is inside our htdocs directory
+    $base = realpath(__DIR__);
+    if ($proj === '' || $projPath === false) {
+        $error = 'Invalid project selected for VS Code.';
+    } elseif (strpos($projPath, $base) !== 0) {
+        $error = 'Project path is not allowed.';
+    } else {
+        // Build safe command
+        $escaped = escapeshellarg($projPath);
+
+        // Detect OS
+        if (stripos(PHP_OS, 'WIN') !== false) {
+            // Windows: use start to run without waiting
+            // Ensure 'code' is in PATH (VS Code CLI). 'start "" code "C:\path"'
+            $cmd = 'start "" code ' . $escaped;
+            // Use pclose+popen to avoid hanging
+            pclose(popen($cmd, 'r'));
+            $message = "Attempted to open <strong>" . htmlspecialchars($proj) . "</strong> in VS Code.";
+        } else {
+            // Unix-like: try nohup + & to background
+            $cmd = 'code ' . $escaped . ' >/dev/null 2>&1 &';
+            @shell_exec($cmd);
+            $message = "Attempted to open <strong>" . htmlspecialchars($proj) . "</strong> in VS Code.";
+        }
+    }
+}
 
 // Auto-list projects
 $projects = array_filter(glob('*'), function($i){
@@ -112,7 +162,9 @@ function human_bytes($bytes) {
 <title>Localhost — Tanjimul Islam Tareq</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 
+<!-- Tailwind CDN -->
 <script src="https://cdn.tailwindcss.com"></script>
+<!-- Lucide -->
 <script src="https://unpkg.com/lucide@latest"></script>
 
 <style>
@@ -134,6 +186,7 @@ function closeModal(){ document.getElementById('createModal').classList.add('hid
 </head>
 <body class="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-black text-white">
 
+<!-- Top controls -->
 <div class="fixed top-6 right-6 flex gap-3 z-40">
     <button onclick="toggleTheme()" class="glass px-3 py-2 rounded-full flex items-center gap-2 hover:scale-105 transition">
         <i data-lucide="moon"></i> Theme
@@ -143,16 +196,36 @@ function closeModal(){ document.getElementById('createModal').classList.add('hid
     </button>
 </div>
 
+<!-- Create Project Modal -->
 <div id="createModal" class="fixed inset-0 flex items-center justify-center bg-black/50 hidden z-50">
     <div class="w-full max-w-xl p-6 glass rounded-2xl relative">
         <button onclick="closeModal()" class="absolute top-4 right-4 text-xl"><i data-lucide="x"></i></button>
-        <h3 class="text-2xl font-semibold mb-6 flex items-center gap-2"><i data-lucide="folder-plus"></i> Create Project</h3>
+        <h3 class="text-2xl font-semibold mb-3 flex items-center gap-2"><i data-lucide="folder-plus"></i> Create Project</h3>
 
         <form method="post" class="space-y-4">
             <input id="project_name" name="project_name" placeholder="Project name (letters, numbers, - _ )" class="w-full p-3 rounded-lg text-slate-800" required />
 
-            <p class="text-sm opacity-70">A project will be created as an empty folder with a minimal `index.php` file.</p>
-            
+            <div>
+                <label class="block mb-2 font-medium">Template</label>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <label class="p-3 bg-slate-800/40 rounded-lg cursor-pointer flex flex-col">
+                        <input type="radio" name="template" value="empty" checked class="hidden">
+                        <div class="font-semibold">Empty PHP</div>
+                        <div class="text-xs opacity-75 mt-1">index.php</div>
+                    </label>
+                    <label class="p-3 bg-slate-800/40 rounded-lg cursor-pointer flex flex-col">
+                        <input type="radio" name="template" value="tailwind" class="hidden">
+                        <div class="font-semibold">Tailwind Starter</div>
+                        <div class="text-xs opacity-75 mt-1">Tailwind CDN + assets/</div>
+                    </label>
+                    <label class="p-3 bg-slate-800/40 rounded-lg cursor-pointer flex flex-col">
+                        <input type="radio" name="template" value="mvc" class="hidden">
+                        <div class="font-semibold">Mini MVC</div>
+                        <div class="text-xs opacity-75 mt-1">app/controllers, views</div>
+                    </label>
+                </div>
+            </div>
+
             <div class="flex justify-end gap-2">
                 <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-lg bg-transparent border border-white/10">Cancel</button>
                 <button type="submit" name="create_project" class="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-500 to-cyan-400">Create</button>
@@ -161,10 +234,13 @@ function closeModal(){ document.getElementById('createModal').classList.add('hid
     </div>
 </div>
 
-<div class="max-w-7xl mx-auto px-20 pt-32 pb-14">
+<!-- Main wrapper (no header/title as requested) -->
+<div class="max-w-7xl mx-auto px-6 py-14">
 
+    <!-- STATUS + QUICK ACTIONS -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
 
+        <!-- Web Server -->
         <div class="glass p-6 rounded-2xl shadow">
             <div class="flex items-center justify-between">
                 <div>
@@ -181,6 +257,7 @@ function closeModal(){ document.getElementById('createModal').classList.add('hid
             </div>
         </div>
 
+        <!-- Database -->
         <div class="glass p-6 rounded-2xl shadow">
             <div class="flex items-center justify-between">
                 <div>
@@ -200,6 +277,7 @@ function closeModal(){ document.getElementById('createModal').classList.add('hid
             </div>
         </div>
 
+        <!-- PHP -->
         <div class="glass p-6 rounded-2xl shadow">
             <div class="flex items-center justify-between">
                 <div>
@@ -213,6 +291,7 @@ function closeModal(){ document.getElementById('createModal').classList.add('hid
         </div>
     </div>
 
+    <!-- System info & Extensions -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <div class="glass p-6 rounded-2xl shadow col-span-2">
             <h4 class="text-lg font-semibold mb-4 flex items-center gap-2"><i data-lucide="info"></i> System Info</h4>
@@ -251,6 +330,7 @@ function closeModal(){ document.getElementById('createModal').classList.add('hid
         </div>
     </div>
 
+    <!-- Developer Tools -->
     <div class="glass glow-border p-8 rounded-2xl shadow-xl mb-10">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <a href="/phpmyadmin/" class="glass p-4 rounded-xl flex items-center gap-3 hover:scale-105 transition">
@@ -262,9 +342,10 @@ function closeModal(){ document.getElementById('createModal').classList.add('hid
         </div>
     </div>
 
+    <!-- Projects -->
     <div class="glass p-8 rounded-2xl shadow-xl">
         <div class="flex items-center justify-between mb-6">
-            <h3 class="text-lg font-semibold flex items-center gap-3"><i data-lucide="folder"></i> All Projects</h3>
+            <h3 class="text-lg font-semibold flex items-center gap-3"><i data-lucide="folder"></i> Your Projects</h3>
             <div class="text-sm opacity-80"><?= count($projects) ?> projects</div>
         </div>
 
@@ -275,13 +356,22 @@ function closeModal(){ document.getElementById('createModal').classList.add('hid
 
         <div class="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             <?php foreach ($projects as $p): ?>
-                <a href="/<?= rawurlencode($p) ?>/" class="project-item glass p-5 rounded-xl hover:scale-105 transition text-center">
-                    <?= htmlspecialchars(ucfirst($p)) ?>
-                </a>
+                <div class="project-item glass p-5 rounded-xl hover:scale-105 transition text-center flex flex-col justify-between">
+                    <div class="grow flex items-center justify-center text-lg font-medium"><?= htmlspecialchars(ucfirst($p)) ?></div>
+                    <div class="mt-4 flex justify-center gap-2">
+                        <a href="/<?= rawurlencode($p) ?>/" target="_blank" class="px-3 py-2 bg-blue-600 rounded-md text-white text-sm hover:bg-blue-700">Open</a>
+
+                        <form method="post" style="display:inline;">
+                            <input type="hidden" name="open_vscode" value="<?= htmlspecialchars($p) ?>">
+                            <button type="submit" class="px-3 py-2 bg-emerald-600 rounded-md text-white text-sm hover:bg-emerald-700">VS Code</button>
+                        </form>
+                    </div>
+                </div>
             <?php endforeach; ?>
         </div>
     </div>
 
+    <!-- Footer -->
     <div class="text-center mt-12">
         <div class="flex justify-center gap-6 text-2xl mb-4">
             <a href="https://www.facebook.com/TanjimulIslamTareq/" class="hover:opacity-75"><i data-lucide="facebook"></i></a>
@@ -289,9 +379,10 @@ function closeModal(){ document.getElementById('createModal').classList.add('hid
             <a href="https://github.com/engineertareq/" class="hover:opacity-75"><i data-lucide="github"></i></a>
             <a href="https://www.engineertareq.com/" class="hover:opacity-75"><i data-lucide="globe"></i></a>
         </div>
-        <p class="opacity-70 text-sm">Built with ❤️ by <strong><a href="https://www.engineertareq.com/">Tanjimul Islam Tareq</a></strong></p>
+        <p class="opacity-70 text-sm">Built with ❤️ by <strong>Tanjimul Islam Tareq</strong></p>
     </div>
 
+    <!-- Toast messages -->
     <?php if (!empty($message)): ?>
         <div id="toastMsg" class="fixed bottom-6 left-6 bg-green-600 text-white px-4 py-2 rounded shadow z-50">
             <?= $message ?>
@@ -308,7 +399,7 @@ function closeModal(){ document.getElementById('createModal').classList.add('hid
 <script>
     lucide.createIcons();
 
-    // If PHP created a project this request, open it in a new tab
+    // If PHP created a project this request, open it in a new tab and show message
     <?php if (!empty($openProjectUrl)): ?>
         (function(){
             try {
@@ -319,5 +410,6 @@ function closeModal(){ document.getElementById('createModal').classList.add('hid
         })();
     <?php endif; ?>
 </script>
+
 </body>
 </html>
