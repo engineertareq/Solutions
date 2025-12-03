@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_project'])) {
                 // Always create minimal index.php
                 file_put_contents($targetDesired . DIRECTORY_SEPARATOR . 'index.php', "<!doctype html>\n<html><head><title>$name</title></head><body><h1>Welcome to $name</h1></body></html>");
 
-                $message = "Project <strong>" . htmlspecialchars($name) . "</strong> created as empty folder.";
+                $message = "Project <strong>" . htmlspecialchars($name) . "</strong> created.";
 
                 // Path to open in browser (for JavaScript)
                 $openProjectUrl = '/' . rawurlencode($name) . '/';
