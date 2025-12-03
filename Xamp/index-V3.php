@@ -1,7 +1,4 @@
 <?php
-// index.php - Full XAMPP dashboard for Tanjimul Islam Tareq
-// NOTE: Theme is Dark by default. Template selection has been removed. 
-// Projects are created as empty folders and automatically open in a new tab and VS Code.
 
 declare(strict_types=1);
 error_reporting(E_ALL);
@@ -21,6 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_project'])) {
     $rawName = (string)($_POST['project_name'] ?? '');
     $name = sanitize_project_name($rawName);
     
+    
     if ($name === '') {
         $error = 'Project name is required (letters, numbers, - and _ allowed).';
     } else {
@@ -33,14 +31,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_project'])) {
                 $error = "Failed to create folder. Check filesystem permissions for " . htmlspecialchars(__DIR__);
             } else {
                 // Always create minimal index.php
-                file_put_contents($targetDesired . DIRECTORY_SEPARATOR . 'index.php', "<!doctype html>\n<html><head><title>$name</title></head><body><h1>Welcome to $name</h1></body></html>");
+                file_put_contents($targetDesired . DIRECTORY_SEPARATOR . 'index.php', "<!doctype html>\n<html><head><title>$name</title></head><body><h1>Welcome to $name project</h1></body></html>");
 
-                $message = "Project <strong>" . htmlspecialchars($name) . "</strong> created as empty folder.";
+                $message = "Project <strong>" . htmlspecialchars($name) . "</strong> created.";
 
                 // Path to open in browser (for JavaScript)
                 $openProjectUrl = '/' . rawurlencode($name) . '/';
 
                 // **FIXED VS CODE EXECUTION:** Attempt to open in VS Code using cmd /C for better Windows/XAMPP reliability.
+                // NOTE: Requires 'code' to be in PATH and PHP's exec function to be enabled.
                 $vsCodeCmd = 'cmd /C "code ' . escapeshellarg($targetDesired) . ' > NUL 2>&1"';
                 @exec($vsCodeCmd);
             }
@@ -117,58 +116,18 @@ function human_bytes($bytes) {
 <script src="https://unpkg.com/lucide@latest"></script>
 
 <style>
-    /* 🌙 Dark Mode Defaults */
-    :root { 
-        --glass-bg: rgba(255,255,255,0.06); 
-        --glass-border: rgba(255,255,255,0.08); 
-    }
-    .glass { 
-        background: var(--glass-bg); 
-        backdrop-filter: blur(10px); 
-        border: 1px solid var(--glass-border); 
-        transition: background 0.3s, border 0.3s;
-    }
-    .glass:hover {
-        background: rgba(255,255,255,0.1);
-    }
-    
-    /* ☀️ Light Mode Overrides (when 'light' class is on <html>) */
-    .light body { 
-        /* Very light gray background */
-        background-image: none;
-        background-color: #f5f5f5; 
-        /* Dark text for contrast */
-        color: #1f2937;
-    }
-    .light .glass { 
-        /* White, opaque background */
-        background: #ffffff; 
-        /* Subtle light gray border */
-        border-color: #e5e7eb; 
-        /* Light shadow to lift elements */
-        box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-    }
-    .light .glass:hover {
-        /* Slightly visible hover effect */
-        background: #f9fafb;
-    }
-
-    /* General styles */
+    :root { --glass-bg: rgba(255,255,255,0.06); --glass-border: rgba(255,255,255,0.08); }
+    .glass { background: var(--glass-bg); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); }
+    .light .glass { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.06); }
     .glow-border { position: relative; overflow: hidden; border-radius: 14px; }
     .glow-border::before { content:""; position:absolute; inset:0; padding:2px; border-radius:inherit; background: linear-gradient(90deg,#06b6d4,#7c3aed,#60a5fa); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; opacity:0.45; pointer-events:none; }
+    /* small tweaks */
     .project-item { min-height: 64px; display: flex; align-items:center; justify-content:center; }
 </style>
 
 <script>
-function toggleTheme(){ 
-    document.documentElement.classList.toggle('light'); 
-}
-function searchProjects(){ 
-    let q = document.getElementById('searchInput').value.toLowerCase(); 
-    document.querySelectorAll('.project-item').forEach(it=>{ 
-        it.style.display = it.innerText.toLowerCase().includes(q)?'flex':'none'; 
-    }); 
-}
+function toggleTheme(){ document.documentElement.classList.toggle('light'); }
+function searchProjects(){ let q = document.getElementById('searchInput').value.toLowerCase(); document.querySelectorAll('.project-item').forEach(it=>{ it.style.display = it.innerText.toLowerCase().includes(q)?'flex':'none'; }); }
 function openModal(){ document.getElementById('createModal').classList.remove('hidden'); document.getElementById('project_name').focus(); }
 function closeModal(){ document.getElementById('createModal').classList.add('hidden'); }
 </script>
@@ -195,14 +154,14 @@ function closeModal(){ document.getElementById('createModal').classList.add('hid
             <p class="text-sm opacity-70">A project will be created as an empty folder with a minimal `index.php` file.</p>
             
             <div class="flex justify-end gap-2">
-                <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-lg bg-transparent border border-white/10 light:border-slate-300">Cancel</button>
+                <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-lg bg-transparent border border-white/10">Cancel</button>
                 <button type="submit" name="create_project" class="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-500 to-cyan-400">Create</button>
             </div>
         </form>
     </div>
 </div>
 
-<div class="max-w-7xl mx-auto px-6 pt-32 pb-14">
+<div class="max-w-7xl mx-auto px-20 pt-32 pb-14">
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
 
@@ -305,7 +264,7 @@ function closeModal(){ document.getElementById('createModal').classList.add('hid
 
     <div class="glass p-8 rounded-2xl shadow-xl">
         <div class="flex items-center justify-between mb-6">
-            <h3 class="text-lg font-semibold flex items-center gap-3"><i data-lucide="folder"></i> Your Projects</h3>
+            <h3 class="text-lg font-semibold flex items-center gap-3"><i data-lucide="folder"></i> All Projects</h3>
             <div class="text-sm opacity-80"><?= count($projects) ?> projects</div>
         </div>
 
@@ -330,7 +289,7 @@ function closeModal(){ document.getElementById('createModal').classList.add('hid
             <a href="https://github.com/engineertareq/" class="hover:opacity-75"><i data-lucide="github"></i></a>
             <a href="https://www.engineertareq.com/" class="hover:opacity-75"><i data-lucide="globe"></i></a>
         </div>
-        <p class="opacity-70 text-sm">Built with ❤️ by <strong>Tanjimul Islam Tareq</strong></p>
+        <p class="opacity-70 text-sm">Built with ❤️ by <strong><a href="https://www.engineertareq.com/">Tanjimul Islam Tareq</a></strong></p>
     </div>
 
     <?php if (!empty($message)): ?>
