@@ -1,7 +1,4 @@
 <?php
-// index.php - Full XAMPP dashboard for Tanjimul Islam Tareq
-// NOTE: Theme is Dark by default. Template selection has been removed. 
-// Projects are created as empty folders and automatically open in a new tab and VS Code.
 
 declare(strict_types=1);
 error_reporting(E_ALL);
@@ -40,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_project'])) {
                 // Path to open in browser (for JavaScript)
                 $openProjectUrl = '/' . rawurlencode($name) . '/';
 
-                // **FIXED VS CODE EXECUTION:** Attempt to open in VS Code using cmd /C for better Windows/XAMPP reliability.
+                //  Attempt to open in VS Code using cmd /C for better Windows/XAMPP reliability.
                 $vsCodeCmd = 'cmd /C "code ' . escapeshellarg($targetDesired) . ' > NUL 2>&1"';
                 @exec($vsCodeCmd);
             }
@@ -202,7 +199,7 @@ function closeModal(){ document.getElementById('createModal').classList.add('hid
     </div>
 </div>
 
-<div class="max-w-7xl mx-auto px-6 pt-32 pb-14">
+<div class="max-w-7xl mx-auto px-20 pt-32 pb-14">
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
 
